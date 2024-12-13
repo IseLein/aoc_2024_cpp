@@ -3,16 +3,18 @@
 #include "day12.h"
 #include <tuple>
 
-#define SCREEN_WIDTH 1200
-#define SCREEN_HEIGHT 900
-#define CELL_SIZE 40
-#define GRID_WIDTH 10
-#define GRID_HEIGHT 10
-#define GRID_FONT_SIZE 20
-#define FONT_SIZE 20
+// 16:9
+#define SCREEN_WIDTH 2560
+#define SCREEN_HEIGHT 1440
+#define CELL_SIZE 10
+#define GRID_WIDTH 140
+#define GRID_HEIGHT 140
+#define GRID_FONT_SIZE 3
+#define FONT_SIZE 40
+#define THICKNESS 1
 
 // contrast with black
-const Color FG_COLORS[] = { SKYBLUE, ORANGE, YELLOW, MAGENTA, PURPLE, GOLD };
+const Color FG_COLORS[] = { SKYBLUE, ORANGE, YELLOW, MAGENTA, PURPLE, GREEN, GOLD };
 
 using namespace std;
 
@@ -70,8 +72,14 @@ int main() {
     int total2 = 0;
     vector<tuple<char, int, int, int, int, int>> totals;
     vector<set<pair<int, int>>> regions = get_regions(data);
+
+
+    // wait 30s before starting
+    actions.push_back({ 30, 0, 0, RED, PASS });
+    totals.push_back({ '?', total1, total2, -2, 0, 0 });
+
     for (int i = 0; i < regions.size(); i++) {
-        Color color = FG_COLORS[i % 6];
+        Color color = FG_COLORS[i % 7];
         set<pair<int, int>> region = regions[i];
         for (auto p: region) {
             actions.push_back({ 0.2, p.second, p.first, color, CELL });
@@ -87,14 +95,14 @@ int main() {
         total2 += area * num_sides;
         for (auto side: sides) {
             for (auto fence: side) {
-                actions.push_back({ 0.1, fence.pos.second, fence.pos.first, RED, SIDE_TO_DETAIL.at(fence.side) });
+                actions.push_back({ 0.0001, fence.pos.second, fence.pos.first, RED, SIDE_TO_DETAIL.at(fence.side) });
                 char plant = data[fence.pos.first][fence.pos.second];
                 totals.push_back({ plant, total1, total2, area, num_fences, num_sides });
             }
         }
         for (auto side: sides) {
             for (auto fence: side) {
-                actions.push_back({ 0.001, fence.pos.second, fence.pos.first, LIGHTGRAY, SIDE_TO_DETAIL.at(fence.side) });
+                actions.push_back({ 0.000001, fence.pos.second, fence.pos.first, LIGHTGRAY, SIDE_TO_DETAIL.at(fence.side) });
                 char plant = data[fence.pos.first][fence.pos.second];
                 totals.push_back({ plant, total1, total2, area, num_fences, num_sides });
             }
@@ -149,8 +157,8 @@ void handle_action(Action a, vector<vector<Cell>> &grid) {
 void drawCellBorders(Cell c, float x, float y, float thickness) {
     DrawLineEx({ x, y }, { x + CELL_SIZE, y }, thickness, c.topBorder);
     DrawLineEx({ x, y }, { x , y + CELL_SIZE }, thickness, c.leftBorder);
-    DrawLineEx({ x + CELL_SIZE - thickness, y }, { x + CELL_SIZE - thickness, y + CELL_SIZE }, 2 * thickness, c.rightBorder);
-    DrawLineEx({ x , y + CELL_SIZE - thickness }, { x + CELL_SIZE , y + CELL_SIZE - thickness }, 2 * thickness, c.bottomBorder);
+    DrawLineEx({ x + CELL_SIZE - thickness, y }, { x + CELL_SIZE - thickness, y + CELL_SIZE },  thickness, c.rightBorder);
+    DrawLineEx({ x , y + CELL_SIZE - thickness }, { x + CELL_SIZE , y + CELL_SIZE - thickness }, thickness, c.bottomBorder);
 }
 
 void draw_grid(vector<vector<Cell>> &grid) {
@@ -169,7 +177,7 @@ void draw_grid(vector<vector<Cell>> &grid) {
             };
 
             DrawRectangleRec(cellRect, grid[y][x].color);
-            drawCellBorders(grid[y][x], cellRect.x, cellRect.y, 1.5);
+            drawCellBorders(grid[y][x], cellRect.x, cellRect.y, THICKNESS);
 
             char text[2] = { grid[y][x].value, '\0' };
             Vector2 textPos = {
@@ -209,7 +217,7 @@ string left_pad(string s, int size) {
 
 void draw_total(tuple<char, int, int, int, int, int> details) {
     // clear the area
-    int width = MeasureText("TOTAL1: XXXXXXXXXXXXX", FONT_SIZE);
+    int width = MeasureText("XXXXXXXXXXXXXXXXXX", FONT_SIZE);
     DrawRectangle(0, 0, width, 60 + 5 * FONT_SIZE, BLACK);
 
     char plant = get<0>(details);
@@ -219,11 +227,11 @@ void draw_total(tuple<char, int, int, int, int, int> details) {
     int num_fences = get<4>(details);
     int num_sides = get<5>(details);
 
-    string total_str = "TOTAL1: " + left_pad(to_string(total1), 7);
+    string total_str = "TOTAL1: " + to_string(total1);
     Vector2 textPos = { 10, 10 };
     DrawText(string_to_char(total_str), textPos.x, textPos.y, FONT_SIZE, RED);
 
-    total_str = "TOTAL2: " + left_pad(to_string(total2), 7);
+    total_str = "TOTAL2: " + to_string(total2);
     textPos = { 10, 20 + FONT_SIZE };
     DrawText(string_to_char(total_str), textPos.x, textPos.y, FONT_SIZE, RED);
 
@@ -260,7 +268,7 @@ void draw_total(tuple<char, int, int, int, int, int> details) {
 }
 
 void load_grid(vector<vector<Cell>> &grid, vector<vector<char>> &data) {
-    ifstream file("input/day12_1t");
+    ifstream file("input/day12");
     string line;
 
     while(getline(file, line)) {
